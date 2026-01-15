@@ -24,7 +24,7 @@ In your terminal, go to the modules directory and clone the repository:
 
 ```bash
 cd ~/MagicMirror/modules
-git clone https://github.com/[your-username]/MMM-MTA-NextSubway.git
+git clone https://github.com/inventnyc/MMM-MTA-NextSubway.git
 cd MMM-MTA-NextSubway
 npm install
 ```
