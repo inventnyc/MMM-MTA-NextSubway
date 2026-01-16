@@ -156,7 +156,7 @@ module.exports = NodeHelper.create({
       // Filter by routeIds and/or stopIds from config
       const filteredEntities = this.filterFeed(allEntities, this.config.routeIds, this.config.stopIds)
 
-      console.log(`[MMM-MTA-NextSubway] Fetched ${feeds.length} feed(s): ${allEntities.length} entities → ${filteredEntities.length} filtered`)
+      console.log(`[MMM-MTA-NextSubway] Fetched ${feeds.length} feed(s): ${allEntities.length} entities -> ${filteredEntities.length} filtered`)
 
       // Build stop names map for only the stops in filtered entities
       const relevantStopNames = {}
