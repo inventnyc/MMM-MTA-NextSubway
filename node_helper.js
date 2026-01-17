@@ -49,10 +49,9 @@ module.exports = NodeHelper.create({
       this.config = payload
       this.fetchMtaRealtimeFeed()
 
-      const self = this
-      setInterval(function () {
-        self.fetchMtaRealtimeFeed()
-      }, self.config.updateInterval)
+      setInterval(() => {
+        this.fetchMtaRealtimeFeed()
+      }, this.config.updateInterval)
     } else if (notification === "FETCH_DATA") {
       this.fetchMtaRealtimeFeed()
     }

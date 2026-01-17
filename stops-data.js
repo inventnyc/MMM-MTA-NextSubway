@@ -1,5 +1,3 @@
-/* global module */
-
 /**
  * MTA NYC Subway Stop Data
  * Generated from stops.txt
@@ -1497,9 +1495,9 @@ const MTA_STOPS = {
   "S31": "St George",
   "S31N": "St George",
   "S31S": "St George"
-};
+}
 
 // For use in Node.js modules
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = MTA_STOPS;
+  module.exports = MTA_STOPS
 }

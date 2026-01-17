@@ -20,45 +20,44 @@ Module.register("MMM-MTA-NextSubway", {
   /**
    * Pseudo-constructor for our module. Initialize stuff here.
    */
-  start: function () {
-    var self = this
+  start() {
     this.dataRequest = null
     this.loaded = false
     this.stopNames = {} // Store stop names mapping
 
-    console.log("Starting module: " + this.name)
+    console.log(`Starting module: ${this.name}`)
     this.sendSocketNotification("CONFIG", this.config)
 
     // Schedule update timer
-    setInterval(function () {
-      self.sendSocketNotification("FETCH_DATA")
+    setInterval(() => {
+      this.sendSocketNotification("FETCH_DATA")
     }, this.config.updateInterval)
   },
 
   /**
    * Apply the default styles.
    */
-  getStyles: function () {
+  getStyles() {
     return ["MMM-MTA-NextSubway.css"]
   },
 
   /**
    * Get required scripts
    */
-  getScripts: function () {
+  getScripts() {
     return ["moment.js"]
   },
 
   /**
    * Render the subway arrivals.
    */
-  getDom: function () {
-    var wrapper = document.createElement("div")
+  getDom() {
+    const wrapper = document.createElement("div")
 
     // If we have data to display
     if (this.dataRequest) {
-      this.dataRequest.forEach(function (data) {
-        var wrapperDataRequest = document.createElement("div")
+      this.dataRequest.forEach((data) => {
+        const wrapperDataRequest = document.createElement("div")
         wrapperDataRequest.innerHTML = data
         wrapperDataRequest.className = "small"
         wrapper.appendChild(wrapperDataRequest)
@@ -75,54 +74,53 @@ Module.register("MMM-MTA-NextSubway", {
   /**
    * Process the subway feed data
    */
-  processData: function (data) {
-    var self = this
+  processData(data) {
     // Store stop names if provided
     if (data.stopNames) {
       this.stopNames = data.stopNames
     }
-    this.dataRequest = self.processSubwayArrivals(data)
-    self.updateDom(self.config.animationSpeed)
+    this.dataRequest = this.processSubwayArrivals(data)
+    this.updateDom(this.config.animationSpeed)
     this.loaded = true
   },
 
   /**
    * Process subway arrivals from GTFS feed
    */
-  processSubwayArrivals: function (response) {
-    var result = []
-    var now = Math.floor(Date.now() / 1000) // Current time in Unix timestamp
+  processSubwayArrivals(response) {
+    const result = []
+    const now = Math.floor(Date.now() / 1000) // Current time in Unix timestamp
 
     if (!response.feed || !response.feed.entity) {
       result.push("No subway data available")
       return result
     }
 
-    var entities = response.feed.entity
-    var arrivals = []
-    var configuredStopIds = this.config.stopIds
+    const entities = response.feed.entity
+    const arrivals = []
+    const configuredStopIds = this.config.stopIds
 
     // Convert stopIds to array if it's a single value
-    var stopIdsArray = configuredStopIds ? (Array.isArray(configuredStopIds) ? configuredStopIds : [configuredStopIds]) : null
+    const stopIdsArray = configuredStopIds ? (Array.isArray(configuredStopIds) ? configuredStopIds : [configuredStopIds]) : null
 
     console.log("[MMM-MTA-NextSubway] Filtering for stops:", stopIdsArray)
 
     // Extract arrivals from entities
-    entities.forEach(function (entity) {
+    entities.forEach((entity) => {
       if (entity.tripUpdate && entity.tripUpdate.stopTimeUpdate) {
-        var trip = entity.tripUpdate.trip
-        var routeId = trip.routeId
+        const { trip } = entity.tripUpdate
+        const { routeId } = trip
 
-        entity.tripUpdate.stopTimeUpdate.forEach(function (stopTime) {
+        entity.tripUpdate.stopTimeUpdate.forEach((stopTime) => {
           // Only process stops that match our configured stopIds (if specified)
           if (!stopIdsArray || stopIdsArray.includes(stopTime.stopId)) {
-            var arrivalTime = stopTime.arrival ? stopTime.arrival.time : null
-            var departureTime = stopTime.departure ? stopTime.departure.time : null
-            var timeToUse = arrivalTime || departureTime
+            const arrivalTime = stopTime.arrival?.time ?? null
+            const departureTime = stopTime.departure?.time ?? null
+            const timeToUse = arrivalTime || departureTime
 
             if (timeToUse) {
               arrivals.push({
-                routeId: routeId,
+                routeId,
                 stopId: stopTime.stopId,
                 arrivalTime: parseInt(timeToUse),
                 tripId: trip.tripId
@@ -134,32 +132,36 @@ Module.register("MMM-MTA-NextSubway", {
     })
 
     // Sort by arrival time
-    arrivals.sort(function (a, b) {
-      return a.arrivalTime - b.arrivalTime
-    })
+    arrivals.sort((a, b) => a.arrivalTime - b.arrivalTime)
 
-    console.log("[MMM-MTA-NextSubway] Found " + arrivals.length + " arrivals matching configured stops")
+    console.log(`[MMM-MTA-NextSubway] Found ${arrivals.length} arrivals matching configured stops`)
 
     // Limit to maxEntries
-    var displayCount = Math.min(arrivals.length, this.config.maxEntries)
+    const displayCount = Math.min(arrivals.length, this.config.maxEntries)
+    const seenStopIds = {} // Track first occurrence of each stopId
 
-    for (var i = 0; i < displayCount; i++) {
-      var arrival = arrivals[i]
-      var mins = Math.floor((arrival.arrivalTime - now) / 60)
-      var timeStr = ""
+    for (let i = 0; i < displayCount; i++) {
+      const arrival = arrivals[i]
+      const mins = Math.floor((arrival.arrivalTime - now) / 60)
+      let timeStr = ""
 
       if (mins <= 0) {
         timeStr = "Now"
       } else if (mins === 1) {
         timeStr = "1 minute"
       } else {
-        timeStr = mins + " minutes"
+        timeStr = `${mins} minutes`
       }
 
       // Get stop name from stopNames mapping
-      var stopName = this.stopNames[arrival.stopId] || arrival.stopId
-      var line = arrival.routeId + " train, " + timeStr + ", " + stopName + " (" + arrival.stopId + ")"
-      result.push(i===0 ? `<span class='bright bold'>${line}</span>` : line)
+      const stopName = this.stopNames[arrival.stopId] || arrival.stopId
+      const line = `${arrival.routeId} train, ${timeStr}, ${stopName} (${arrival.stopId})`
+
+      // Apply bright bold to first occurrence of each stopId
+      const isFirstForStop = !seenStopIds[arrival.stopId]
+      seenStopIds[arrival.stopId] = true
+
+      result.push(isFirstForStop ? `<span class='bright bold'>${line}</span>` : line)
     }
 
     if (arrivals.length === 0) {
@@ -167,8 +169,8 @@ Module.register("MMM-MTA-NextSubway", {
     }
 
     // Add last updated time
-    var updateTime = new Date()
-    result.push("Last Updated: " + this.formatTimeString(updateTime))
+    const updateTime = new Date()
+    result.push(`Last Updated: ${this.formatTimeString(updateTime)}`)
 
     return result
   },
@@ -176,18 +178,18 @@ Module.register("MMM-MTA-NextSubway", {
   /**
    * Format time string based on config
    */
-  formatTimeString: function (date) {
-    var m = moment(date)
+  formatTimeString(date) {
+    const m = moment(date)
 
-    var hourSymbol = "HH"
-    var periodSymbol = ""
+    let hourSymbol = "HH"
+    let periodSymbol = ""
 
     if (this.config.timeFormat !== 24) {
       hourSymbol = "h"
       periodSymbol = " A"
     }
 
-    var format = hourSymbol + ":mm" + periodSymbol
+    const format = `${hourSymbol}:mm${periodSymbol}`
 
     return m.format(format)
   },
@@ -195,7 +197,7 @@ Module.register("MMM-MTA-NextSubway", {
   /**
    * Handle notifications received by the node helper.
    */
-  socketNotificationReceived: function (notification, payload) {
+  socketNotificationReceived(notification, payload) {
     if (notification === "FETCH_MTA_REALTIME_FEED_SUCCESS") {
       this.processData(payload)
     } else if (notification === "FETCH_MTA_REALTIME_FEED_ERROR") {
