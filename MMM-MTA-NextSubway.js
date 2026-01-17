@@ -159,7 +159,7 @@ Module.register("MMM-MTA-NextSubway", {
       // Get stop name from stopNames mapping
       var stopName = this.stopNames[arrival.stopId] || arrival.stopId
       var line = arrival.routeId + " train, " + timeStr + ", " + stopName + " (" + arrival.stopId + ")"
-      result.push(line)
+      result.push(i===0 ? `<span class='bright bold'>${line}</span>` : line)
     }
 
     if (arrivals.length === 0) {
